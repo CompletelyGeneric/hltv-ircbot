@@ -15,7 +15,7 @@ parse = feedparser.parse('http://www.hltv.org/hltv.rss.php?pri=15')
 parse2 = feedparser.parse('http://www.hltv.org/hltv.rss.php?pri=15')
 irc.connect((network, port))
 print irc.recv(4096)
-irc.send('NICK CSMatchBot\r\n')
+irc.send('NICK CSMatchBotDev\r\n')
 irc.send('USER bot bot bot :wew laddy\r\n')
 parse
 for channel in channels:
@@ -50,9 +50,10 @@ def parseCommands(data, channel):
 				m, s = divmod(matchTimeTillMatchSeconds, 60)
 				h, m = divmod(m, 60)
 				if h < 0:
-					h = 0
-				matchTimeTillMatch = "%d hour(s), %02d minutes, and %02d seconds" % (h, m, s)
-				irc.send("PRIVMSG " + channel + " :" + "[" + parse2.entries[i]['summary'] + "] " + parse2.entries[i]['title'] + " in "  + matchTimeTillMatch + "\r\n")
+					irc.send("PRIVMSG " + channel + " :" + "[" + parse2.entries[i]['summary'] + "] " + parse2.entries[i]['title'] + " is live! " "\r\n")
+				else:
+					matchTimeTillMatch = "%d hour(s), and %02d minutes" % (h, m)
+					irc.send("PRIVMSG " + channel + " :" + "[" + parse2.entries[i]['summary'] + "] " + parse2.entries[i]['title'] + " in "  + matchTimeTillMatch + "\r\n")
 				count = count + 1
 	if data.find(':.bots') != -1:
 		irc.send(channelMessage + "Reporting in! [python] See https://github.com/CompletelyGeneric/hltv-ircbot" + "\r\n")
@@ -68,13 +69,15 @@ def parseFeed():
 			m, s = divmod(matchTimeTillMatchSeconds, 60)
 			h, m = divmod(m, 60)
 			if h < 0:
-				h = 0
-			matchTimeTillMatch = "%d hour(s), %02d minutes, and %02d seconds" % (h, m, s)
-			matchFinal = "Upcoming Match: " + "[" + parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + " in " + matchTimeTillMatch + "\r\n"
-			if matchTimeTuple[:4] == time.gmtime(time.time())[:4]:
+				matchFinal = "[" + parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + " is live! "  + "\r\n"
+				sendToAllChans(matchFinal)
+			else:
+				matchTimeTillMatch = "%d hour(s), and %02d minutes" % (h, m)
+				matchFinal = "[" + parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + " in " + matchTimeTillMatch + "\r\n"
+			if (h <= 1 and h >=0):
 				sendToAllChans(matchFinal)
 				time.sleep(2)
-		time.sleep(216000) #one hour
+		time.sleep(2700) #sleeps 45 minutes
 
 #threaded run loop
 def keepAlive():
