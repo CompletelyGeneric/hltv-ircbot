@@ -4,10 +4,11 @@ import pprint
 import time
 import re
 from threading import Thread
+from datetime import datetime, date
 
 network = 'irc.rizon.net'
 port = 6667
-channels = ['#cgsbots','#femgen']
+channels = ['#cgsbots']
 
 irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 parse = feedparser.parse('http://www.hltv.org/hltv.rss.php?pri=15')
@@ -37,22 +38,39 @@ def parseChannel(data):
 
 
 def parseCommands(data, channel):
+	channelMessage = "PRIVMSG " + channel + " :"
 	if data.find(':.matches') != -1:
-		count = 0
 		parse2
+		count = 0
 		for i in range(0, len(parse2.entries)):
 			if count <= 4:
-				irc.send("PRIVMSG "+ channel + " :" + "[" + parse2.entries[i]['summary'] + "] " + parse2.entries[i]['title'] + " on " + time.strftime("%m/%d %H:%M UTC", parse2.entries[i].published_parsed) + "\r\n")
+				currentTime = time.gmtime(time.time())
+				matchTimeTuple = parse2.entries[i].published_parsed
+				matchTimeTillMatchSeconds = ((time.mktime(matchTimeTuple) - time.mktime(currentTime)))
+				m, s = divmod(matchTimeTillMatchSeconds, 60)
+				h, m = divmod(m, 60)
+				if h < 0:
+					h = 0
+				matchTimeTillMatch = "%d hour(s), %02d minutes, and %02d seconds" % (h, m, s)
+				irc.send("PRIVMSG " + channel + " :" + "[" + parse2.entries[i]['summary'] + "] " + parse2.entries[i]['title'] + " in "  + matchTimeTillMatch + "\r\n")
 				count = count + 1
+	if data.find(':.bots') != -1:
+		irc.send(channelMessage + "Reporting in! [python] See https://github.com/CompletelyGeneric/hltv-ircbot" + "\r\n")
 
 #parses HLTV RSS feed and outputs it to all chans
 #has its own thread
 def parseFeed():
 	while True:
 		for i in range(0, len(parse.entries)):
+			currentTime = time.gmtime(time.time())
 			matchTimeTuple = parse.entries[i].published_parsed
-			matchTime = str(list(matchTimeTuple)[3] - list(time.gmtime(time.time()))[3]) + " hour(s) and " + str(list(matchTimeTuple)[4] - list(time.gmtime(time.time()))[4]) + " minutes"
-			matchFinal = "Upcoming Match: " + "[" + parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + " on in " + matchTime
+			matchTimeTillMatchSeconds = ((time.mktime(matchTimeTuple) - time.mktime(currentTime)))
+			m, s = divmod(matchTimeTillMatchSeconds, 60)
+			h, m = divmod(m, 60)
+			if h < 0:
+				h = 0
+			matchTimeTillMatch = "%d hour(s), %02d minutes, and %02d seconds" % (h, m, s)
+			matchFinal = "Upcoming Match: " + "[" + parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + " in " + matchTimeTillMatch + "\r\n"
 			if matchTimeTuple[:4] == time.gmtime(time.time())[:4]:
 				sendToAllChans(matchFinal)
 				time.sleep(2)
@@ -66,7 +84,8 @@ def keepAlive():
 	   		irc.send('PONG ' + data.split()[1] + '\r\n')
 	   	focusChannel = parseChannel(data)
 	   	parseCommands(data, focusChannel)
-	   	print data	
+	   	print data
+
 
 
 #starting the threads
