@@ -1,6 +1,7 @@
 import socket
 import feedparser
 import pprint
+import hashlib
 import time
 import re
 from threading import Thread
@@ -15,9 +16,10 @@ parse = feedparser.parse('http://www.hltv.org/hltv.rss.php?pri=15')
 parse2 = feedparser.parse('http://www.hltv.org/hltv.rss.php?pri=15')
 irc.connect((network, port))
 print irc.recv(4096)
-irc.send('NICK CSMatchBotDev\r\n')
+irc.send('NICK CSMatchBot\r\n')
 irc.send('USER bot bot bot :wew laddy\r\n')
 parse
+parseList = []
 for channel in channels:
 	irc.send('JOIN ' + channel + '\r\n')
 
@@ -39,45 +41,49 @@ def parseChannel(data):
 
 def parseCommands(data, channel):
 	channelMessage = "PRIVMSG " + channel + " :"
-	if data.find(':.matches') != -1:
+	if data.find(':.matches') != -1: #.matches
 		parse2
-		count = 0
 		for i in range(0, len(parse2.entries)):
-			if count <= 4:
-				currentTime = time.gmtime(time.time())
-				matchTimeTuple = parse2.entries[i].published_parsed
-				matchTimeTillMatchSeconds = ((time.mktime(matchTimeTuple) - time.mktime(currentTime)))
-				m, s = divmod(matchTimeTillMatchSeconds, 60)
-				h, m = divmod(m, 60)
-				if h < 0:
-					irc.send("PRIVMSG " + channel + " :" + "[" + parse2.entries[i]['summary'] + "] " + parse2.entries[i]['title'] + " is live! " "\r\n")
-				else:
-					matchTimeTillMatch = "%d hour(s), and %02d minutes" % (h, m)
-					irc.send("PRIVMSG " + channel + " :" + "[" + parse2.entries[i]['summary'] + "] " + parse2.entries[i]['title'] + " in "  + matchTimeTillMatch + "\r\n")
-				count = count + 1
-	if data.find(':.bots') != -1:
-		irc.send(channelMessage + "Reporting in! [python] See https://github.com/CompletelyGeneric/hltv-ircbot" + "\r\n")
-
-#parses HLTV RSS feed and outputs it to all chans
-#has its own thread
-def parseFeed():
-	while True:
-		for i in range(0, len(parse.entries)):
 			currentTime = time.gmtime(time.time())
-			matchTimeTuple = parse.entries[i].published_parsed
+			matchTimeTuple = parse2.entries[i].published_parsed
 			matchTimeTillMatchSeconds = ((time.mktime(matchTimeTuple) - time.mktime(currentTime)))
 			m, s = divmod(matchTimeTillMatchSeconds, 60)
 			h, m = divmod(m, 60)
 			if h < 0:
-				matchFinal = "[" + parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + " is live! "  + "\r\n"
-				sendToAllChans(matchFinal)
+				irc.send("PRIVMSG " + channel + " :" + "[" + parse2.entries[i]['summary'] + "] " + parse2.entries[i]['title'] + " is live! " "\r\n")
 			else:
 				matchTimeTillMatch = "%d hour(s), and %02d minutes" % (h, m)
-				matchFinal = "[" + parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + " in " + matchTimeTillMatch + "\r\n"
-			if (h <= 1 and h >=0):
+				irc.send("PRIVMSG " + channel + " :" + "[" + parse2.entries[i]['summary'] + "] " + parse2.entries[i]['title'] + " in "  + matchTimeTillMatch + "\r\n")
+	if data.find(':.bots') != -1 or data.find(':.version') != -1: #.bots	
+		irc.send(channelMessage + "Reporting in! [python] See https://github.com/CompletelyGeneric/hltv-ircbot" + "\r\n")
+	if data.find(':.help') != -1:
+		irc.send(channelMessage + ".matches, .help, .version/.bots" )
+
+#parses HLTV RSS feed and outputs it to all chans
+#has its own thread
+def parseFeed():
+	matchHashList = []
+	while True:
+		parse
+		matchHashListCurrent = []
+		for i in range(0, len(parse.entries)):
+			currentTime = time.gmtime(time.time())
+			matchTimeTuple = parse.entries[i].published_parsed
+			matchTimeTillMatchSeconds = ((time.mktime(matchTimeTuple) - time.mktime(currentTime)))
+			#hashlib.md5(parse.entries[i]['summary'] + "] " + parse.entries[i]['title']).hexdigest()
+			matchHashCurrent = hashlib.md5(parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + parse.entries[i]['published']).hexdigest()
+			matchHashListCurrent.append(matchHashCurrent)
+			if matchTimeTillMatchSeconds <= 0 and matchHashCurrent not in matchHashList:
+				matchFinal = "[" + parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + " is live! "  + "\r\n"
 				sendToAllChans(matchFinal)
+				matchHashList.append(matchHashCurrent)
 				time.sleep(2)
-		time.sleep(2700) #sleeps 45 minutes
+		for x in matchHashList:
+			if x not in matchHashListCurrent:
+				matchHashList.remove(x)
+
+
+
 
 #threaded run loop
 def keepAlive():
@@ -88,7 +94,6 @@ def keepAlive():
 	   	focusChannel = parseChannel(data)
 	   	parseCommands(data, focusChannel)
 	   	print data
-
 
 
 #starting the threads
