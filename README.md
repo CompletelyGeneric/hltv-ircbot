@@ -5,7 +5,7 @@ Simple bot to output live CS matches to a channel using HLTV's RSS feed.
 
   
 Commands: 
-					.matches - displays upcoming matches
-					.bots/.version - returns info about the bot
+					.matches - displays upcoming matches  
+					.bots/.version - returns info about the bot  
 					
 
