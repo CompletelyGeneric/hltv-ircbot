@@ -18,7 +18,6 @@ irc.connect((network, port))
 print irc.recv(4096)
 irc.send('NICK CSMatchBot\r\n')
 irc.send('USER bot bot bot :wew laddy\r\n')
-parse
 parseList = []
 for channel in channels:
 	irc.send('JOIN ' + channel + '\r\n')
@@ -70,7 +69,6 @@ def parseFeed():
 			currentTime = time.gmtime(time.time())
 			matchTimeTuple = parse.entries[i].published_parsed
 			matchTimeTillMatchSeconds = ((time.mktime(matchTimeTuple) - time.mktime(currentTime)))
-			#hashlib.md5(parse.entries[i]['summary'] + "] " + parse.entries[i]['title']).hexdigest()
 			matchHashCurrent = hashlib.md5(parse.entries[i]['summary'] + "] " + parse.entries[i]['title'] + parse.entries[i]['published']).hexdigest()
 			matchHashListCurrent.append(matchHashCurrent)
 			if matchTimeTillMatchSeconds <= 0 and matchHashCurrent not in matchHashList:
@@ -81,7 +79,7 @@ def parseFeed():
 		for x in matchHashList:
 			if x not in matchHashListCurrent:
 				matchHashList.remove(x)
-
+		time.sleep(60) #don't spam the RSS feed
 
 
 
