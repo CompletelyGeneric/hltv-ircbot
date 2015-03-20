@@ -9,12 +9,12 @@ from datetime import datetime, date
 
 network = 'irc.rizon.net'
 port = 6667
-channels = ['#cgsbots','#femgen','#tokisquad']
+channels = ['#cgsbots']
 
 irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 irc.connect((network, port))
 print irc.recv(4096)
-irc.send('NICK cykabot\r\n')
+irc.send('NICK CSMatchBot\r\n')
 irc.send('USER bot bot bot :wew laddy\r\n')
 parseList = []
 for channel in channels:
